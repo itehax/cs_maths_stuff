@@ -1,4 +1,4 @@
-This repo will contain notes/implementations of random things that i will see in the mathematics degree course and  computer science degree course.
+This repo will contain notes/implementations of random things that i will see in the mathematics degree course and  computer science degree course, also random stuff i do.
 
 A matter of time and cool things will be added like: 
 
