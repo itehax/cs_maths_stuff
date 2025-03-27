@@ -1,35 +1,83 @@
 from z3 import *
 
-MASK = 0xFFFFFFFF
+# class XoRRayhulRNG {
+#  constructor(s0, s1) {
+#    this.s0 = s0;
+#    this.s1 = s1;
+#  }
+#
+#  xorrayhul64p(){
+#    var s0 = (this.s0>>>0) & MASK;
+#    var s1 = (this.s1>>>0) & MASK;
+#
+#    var r = (s0 + s1)>>>0 & MASK;
+#
+#    s1 = ((s0 ^ s1)>>>0) & MASK;
+#    this.s0 = ((((s0 << 23)>>>0 | s0 >>> (32 - 23)) & MASK) ^ s1 ^ (s1 << 7)>>>0) & MASK;
+#    this.s1 = ((s1 << 18)>>>0 | s1 >>> (32 - 18)) & MASK;
+#    return r;
+#  }
+#
+#  gen_rand(){
+#    var r = this.xorrayhul64p() & 0x1FFFFFF;
+#    console.log("r:", r);
+#    var index = r % 37;
+#    var text = options[index];
+#    return text;
+#  }
+# }
+MASK = 0xFFFFFFFF  # 2^32 - 1 = 32bit set a 1, dunque forzo 4 byte
 
 
-def xorrathul64p(k1, k2):
-    k1 = k1 & MASK
-    k2 = k2 & MASK
-    r = (k1 ^ k2) & MASK
-    k1 = ((((k1 << 23) | k1 >> (32 - 23)) & MASK) ^ k2 ^ (k2 << 7)) & MASK
-    k2 = ((k2 << 18) | k2 >> (32 - 18)) & MASK
-    return r, k1, k2
+class PRNG:
+    def __init__(self, state0, state1):
+        self.s0 = state0
+        self.s1 = state1
+
+    def xorrayhul64p(self):
+        s0 = self.s0 & MASK
+        s1 = self.s1 & MASK
+        random = (s0 + s1) & MASK
+        s1 = (s0 ^ s1) & MASK
+        self.s0 = ((((s0 << 23) | s0 >> (32 - 23)) & MASK) ^ s1 ^ (s1 << 7)) & MASK
+        self.s1 = ((s1 << 18) | s1 >> (32 - 18)) & MASK
+        return random
+
+    def gen_rand(self):
+        return (self.xorrayhul64p() & 0x1FFFFFF) % 37
 
 
-def gen_rand(k1, k2):
-    return xorrathul64p(k1, k2)[0] & 0x1FFFFFFF
+def z3_xorarrayhul64p(s, state0, state1, expected):
+    # dont care about masking cause 32 bit already enforced in z3, need to take care only about      logical shift, because >> is arithmetic, so sign preserved.
+    random = (state0 + state1) & 0x1FFFFFF
+    s.add(expected == random)
+    state1 = state0 ^ state1
+    state0 = ((state0 << 23) | LShR(state0, (32 - 23))) ^ state1 ^ (state1 << 7)
+    state1 = (state1 << 18) | LShR(state1, (32 - 18))
+    return state0, state1
 
 
 def break_prng():
-    k1, k2 = BitVecs("k1 k2", 32)
-    known = [8440991, 9895740, 1648057]
+    state0, state1 = BitVecs("state0 state1", 32)
+    stolen = [25342117, 28906081, 13411728]
+    curr_state0, curr_state_1 = state0, state1
     s = Solver()
-    for rand in known:
-        _, k_1, k_2 = xorrathul64p(k1, k2)
-        s.add(gen_rand(k1, k2) == rand)
-        k1, k2 = k_1, k_2
+    # this works because curr_state_i depends on state0 and state1.
+    for r in stolen:
+        curr_state0, curr_state_1 = z3_xorarrayhul64p(s, curr_state0, curr_state_1, r)
+
     if s.check() == sat:
-        print("orkkk")
         m = s.model()
-        print(m)
+        seed0 = m[state0].as_long()
+        seed1 = m[state1].as_long()
+        print(f"BROKEN! got {m[state0]} as state0, {m[state1]} as state1")
+        rng = PRNG(seed0, seed1)
+        for _ in range(10):
+            print(f"Next gen value:{rng.gen_rand()}")
 
 
+if __name__ == "__main__":
+    break_prng()
 # ROUNDS = 3
 # MASK = (1 << 64) - 1
 #
