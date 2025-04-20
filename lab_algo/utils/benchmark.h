@@ -1,6 +1,6 @@
-struct Benchmark {
-  struct memory {
-
+struct Benchmark
+{
+  struct memory
+  {
   };
-
 };
