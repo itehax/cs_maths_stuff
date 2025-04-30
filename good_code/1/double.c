@@ -47,6 +47,7 @@ int getword(FILE *fp, char *buf, int size) {
   if (i < size) {
     buf[i] = '\0';
   }
+  // if c isspace, leave it here for next word.
   if (c != EOF) {
     ungetc(c, fp);
   }
@@ -59,7 +60,7 @@ void doubleword(char *fname, FILE *fp) {
   prev[0] = '\0';
 
   while (getword(fp, word, sizeof(word))) {
-    if (isalpha(word[0]) && strcmp(prev, word)) {
+    if (isalpha(word[0]) && strcmp(prev, word) == 0) {
       if (fname) {
         printf("%s:", fname);
       }
