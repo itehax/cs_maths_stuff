@@ -7,6 +7,7 @@
 int linenum;
 int getword(FILE *fp, char *buf, int size);
 void doubleword(char *fname, FILE *fp);
+void doubleword_fix(char *fname, FILE *fp);
 
 int main(int argc, char *argv[]) {
   for (int i = 1; i < argc; ++i) {
@@ -16,7 +17,7 @@ int main(int argc, char *argv[]) {
               strerror(errno));
       return EXIT_FAILURE;
     } else {
-      doubleword(argv[i], fp);
+      doubleword_fix(argv[i], fp);
       fclose(fp);
     }
   }
@@ -65,6 +66,32 @@ void doubleword(char *fname, FILE *fp) {
         printf("%s:", fname);
       }
       printf("%d: %s\n", linenum, word);
+    }
+    strcpy(prev, word);
+  }
+}
+
+// What does double print when it sees three or more identical
+// words in its input? Change double to fix this “feature.”
+void doubleword_fix(char *fname, FILE *fp) {
+  char prev[128], word[128];
+  char repeated[128];
+
+  linenum = 1;
+  prev[0] = '\0';
+  repeated[0] = '\0';
+
+  while (getword(fp, word, sizeof(word))) {
+    if (isalpha(word[0]) && strcmp(prev, word) == 0) {
+      if (strcmp(repeated, word) == 0) {
+        continue;
+      } else {
+        if (fname) {
+          printf("%s:", fname);
+        }
+        printf("%d: %s\n", linenum, word);
+        strcpy(repeated, word);
+      }
     }
     strcpy(prev, word);
   }
