@@ -83,9 +83,7 @@ void doubleword_fix(char *fname, FILE *fp) {
 
   while (getword(fp, word, sizeof(word))) {
     if (isalpha(word[0]) && strcmp(prev, word) == 0) {
-      if (strcmp(repeated, word) == 0) {
-        continue;
-      } else {
+      if (strcmp(repeated, word) != 0) {
         if (fname) {
           printf("%s:", fname);
         }
