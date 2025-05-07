@@ -1,3 +1,6 @@
+import random
+import time
+
 BIT_MASK_32 = 0xffffffff
 STATE_VECTOR_LEN = 624
 STATE_VECTOR_M = 397
@@ -6,17 +9,17 @@ LOWER_MASK = 0x7fffffff
 TEMPERING_MASK_B = 0x9d2c5680
 TEMPERING_MASK_C = 0xefc60000
 
-class MT:
+class MT19937:
     def __init__(self,seed:int) -> None:
-        self.state_array = []
+        self.state_array = [0] * STATE_VECTOR_LEN
         self.state_index = 0
         self.init_state(seed)
 
     def init_state(self,seed):
-        self.state_array.append(seed & BIT_MASK_32)
+        self.state_array[0] = seed & BIT_MASK_32
         for i in range(1,STATE_VECTOR_LEN):
             seed = (1812433253 * (seed ^ (seed >> (32 -2))) + i) & BIT_MASK_32
-            self.state_array.append(seed)
+            self.state_array[i] = seed
 
     def gen_rand_uint32(self):
         k = self.state_index
@@ -48,8 +51,19 @@ class MT:
         y = (y ^((y << 15) & TEMPERING_MASK_C)) & BIT_MASK_32
         return (y ^ (y >> 18)) & BIT_MASK_32
 
+def crack_seed():
+    curr_time = int(time.time())
+    time_simulated = random.randint(1,200)
+    mt = MT19937(curr_time + time_simulated)
+    got = mt.gen_rand_uint32()
+    #assume that the deltaT in which i get time on my pc and on server is 0 or similar, but anyway easy to break,also can bruteforce with double as i did, or just clone prng if possibile.
+    for guess_elapsed in range(0,200):
+        s = curr_time + guess_elapsed
+        r = MT19937(s)
+        if r.gen_rand_uint32() == got:
+            print(f"Found seed! {s}")
+            return
 
-a = MT(0x1337)
 
-for i in range(624):
-    print(a.gen_rand_uint32())
+if __name__ == "__main__":
+    crack_seed()
